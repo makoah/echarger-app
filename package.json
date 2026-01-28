@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "fetch-chargers": "node scripts/fetch-chargers.mjs",
+    "fetch-chargers:dry": "node scripts/fetch-chargers.mjs --dry-run"
   },
   "dependencies": {
     "next": "16.1.6",
@@ -21,6 +23,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
