@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Search, Loader2 } from 'lucide-react';
 import { ChargerRecord, ChargerWithDistance } from '@/types/corridor';
 import { filterChargersByRange } from '@/lib/utils/charger-filter';
+import { Header } from '@/components/corridor/Header';
 import { RangeInput } from '@/components/corridor/RangeInput';
 import { LocationSelector } from '@/components/corridor/LocationSelector';
 import { ChargerList } from '@/components/corridor/ChargerList';
+import { OnRouteToggle } from '@/components/corridor/OnRouteToggle';
 
 interface Location {
   lat: number;
@@ -22,6 +25,7 @@ export default function Home() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [onRouteOnly, setOnRouteOnly] = useState(true);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Fetch chargers on mount
   useEffect(() => {
@@ -33,10 +37,13 @@ export default function Home() {
         setChargers(data.chargers);
 
         // Cache in localStorage
-        localStorage.setItem('chargers_cache', JSON.stringify({
-          data: data.chargers,
-          timestamp: Date.now()
-        }));
+        localStorage.setItem(
+          'chargers_cache',
+          JSON.stringify({
+            data: data.chargers,
+            timestamp: Date.now(),
+          })
+        );
       } catch (err) {
         console.error('Fetch error:', err);
         // Try loading from cache
@@ -84,38 +91,29 @@ export default function Home() {
 
     setLoading(true);
     setError(null);
+    setHasSearched(true);
 
     setTimeout(() => {
       // Filter by on_route if enabled
       const filteredByRoute = onRouteOnly
-        ? chargers.filter(c => c.on_route === 'yes' || c.on_route === 'nearby')
+        ? chargers.filter((c) => c.on_route === 'yes' || c.on_route === 'nearby')
         : chargers;
 
-      const filtered = filterChargersByRange(
-        filteredByRoute,
-        location.lat,
-        location.lng,
-        range,
-        3
-      );
+      const filtered = filterChargersByRange(filteredByRoute, location.lat, location.lng, range, 3);
       setResults(filtered);
       setLoading(false);
     }, 300);
   };
 
-  const canSearch = location && range && range > 0 && chargers.length > 0;
-  const onRouteCount = chargers.filter(c => c.on_route === 'yes' || c.on_route === 'nearby').length;
+  const canSearch = location && range && range > 0 && chargers.length > 0 && !loading;
+  const onRouteCount = chargers.filter((c) => c.on_route === 'yes' || c.on_route === 'nearby').length;
   const totalCount = chargers.length;
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-4 py-5 sticky top-0 z-50 shadow-lg">
-        <h1 className="text-xl font-bold">ECharger Helper</h1>
-        <p className="text-sm opacity-90">Rotterdam ↔ Santa Pola</p>
-      </header>
+    <div className="min-h-screen bg-gray-100">
+      <Header />
 
-      <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      <main className="max-w-lg mx-auto px-4 py-6 pb-24 space-y-4">
         {/* Location */}
         <LocationSelector location={location} onLocationChange={setLocation} />
 
@@ -123,64 +121,62 @@ export default function Home() {
         <RangeInput value={range} onChange={setRange} />
 
         {/* Route Filter Toggle */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="font-medium text-gray-700">On-route only</span>
-              <p className="text-xs text-gray-500">
-                {onRouteOnly ? `${onRouteCount} verified` : `${totalCount} total`} chargers
-              </p>
-            </div>
-            <button
-              onClick={() => setOnRouteOnly(!onRouteOnly)}
-              className={`relative w-14 h-8 rounded-full transition-colors ${
-                onRouteOnly ? 'bg-green-500' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${
-                  onRouteOnly ? 'left-7' : 'left-1'
-                }`}
-              />
-            </button>
-          </div>
-          {!onRouteOnly && (
-            <p className="text-xs text-yellow-600 mt-2">
-              Showing all chargers including off-route options
-            </p>
-          )}
-        </div>
+        <OnRouteToggle
+          onRouteOnly={onRouteOnly}
+          onToggle={setOnRouteOnly}
+          onRouteCount={onRouteCount}
+          totalCount={totalCount}
+        />
 
         {/* Search Button */}
         <button
           onClick={handleSearch}
-          disabled={!canSearch || loading}
-          className={`w-full py-4 rounded-xl font-semibold text-lg transition-all ${
-            canSearch && !loading
-              ? 'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white shadow-lg'
+          disabled={!canSearch}
+          className={`w-full min-h-[56px] flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold text-lg transition-all duration-200 active:scale-[0.98] ${
+            canSearch
+              ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {initialLoading ? 'Loading chargers...' : loading ? 'Searching...' : 'Find Chargers'}
+          {initialLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Loading chargers...</span>
+            </>
+          ) : loading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Searching...</span>
+            </>
+          ) : (
+            <>
+              <Search className="w-5 h-5" />
+              <span>Find Chargers</span>
+            </>
+          )}
         </button>
 
         {/* Error */}
-        {error && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
-            {error}
-          </div>
+        {error && !loading && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-sm text-yellow-800">{error}</div>
         )}
 
         {/* Results */}
-        {(results.length > 0 || loading) && (
-          <ChargerList chargers={results} loading={loading} rangeKm={range} />
+        {hasSearched && (
+          <ChargerList
+            chargers={results}
+            loading={loading}
+            error={null}
+            rangeKm={range}
+            onRetry={handleSearch}
+          />
         )}
 
         {/* Stats */}
         {!loading && chargers.length > 0 && (
-          <div className="text-center text-sm text-gray-500 py-4">
-            {onRouteOnly ? onRouteCount : totalCount} chargers • 150-400kW
-          </div>
+          <p className="text-center text-xs text-gray-500 pt-2">
+            {onRouteOnly ? onRouteCount : totalCount} chargers • 150-400kW • Updated just now
+          </p>
         )}
       </main>
     </div>
