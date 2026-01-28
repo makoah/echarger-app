@@ -15,6 +15,7 @@ export interface ChargerRecord {
   status?: string;
   connector_types: string;
   num_chargers: number;
+  on_route: 'yes' | 'no' | 'nearby';
 }
 
 export interface ChargerWithDistance extends ChargerRecord {

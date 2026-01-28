@@ -121,7 +121,8 @@ async function addToAirtable(chargers) {
         num_chargers: c.num_chargers,
         highway_proximity: 'near_exit',
         charger_status: 'untested',
-        charger_notes: `Auto-imported from OpenChargeMap. Needs verification.`,
+        on_route: 'no',
+        charger_notes: `Auto-imported from OpenChargeMap. Needs verification. Mark on_route=yes if on main corridor.`,
       },
     }));
 

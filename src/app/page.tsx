@@ -21,6 +21,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [onRouteOnly, setOnRouteOnly] = useState(true);
 
   // Fetch chargers on mount
   useEffect(() => {
@@ -59,6 +60,9 @@ export default function Home() {
     const savedLocation = localStorage.getItem('last_location');
     if (savedLocation) setLocation(JSON.parse(savedLocation));
 
+    const savedOnRouteOnly = localStorage.getItem('on_route_only');
+    if (savedOnRouteOnly !== null) setOnRouteOnly(savedOnRouteOnly === 'true');
+
     fetchChargers();
   }, []);
 
@@ -71,16 +75,24 @@ export default function Home() {
     if (location) localStorage.setItem('last_location', JSON.stringify(location));
   }, [location]);
 
+  useEffect(() => {
+    localStorage.setItem('on_route_only', String(onRouteOnly));
+  }, [onRouteOnly]);
+
   const handleSearch = () => {
     if (!location || !range) return;
 
     setLoading(true);
     setError(null);
 
-    // Simulate brief loading for UX
     setTimeout(() => {
+      // Filter by on_route if enabled
+      const filteredByRoute = onRouteOnly
+        ? chargers.filter(c => c.on_route === 'yes' || c.on_route === 'nearby')
+        : chargers;
+
       const filtered = filterChargersByRange(
-        chargers,
+        filteredByRoute,
         location.lat,
         location.lng,
         range,
@@ -92,6 +104,8 @@ export default function Home() {
   };
 
   const canSearch = location && range && range > 0 && chargers.length > 0;
+  const onRouteCount = chargers.filter(c => c.on_route === 'yes' || c.on_route === 'nearby').length;
+  const totalCount = chargers.length;
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -107,6 +121,35 @@ export default function Home() {
 
         {/* Range */}
         <RangeInput value={range} onChange={setRange} />
+
+        {/* Route Filter Toggle */}
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-medium text-gray-700">On-route only</span>
+              <p className="text-xs text-gray-500">
+                {onRouteOnly ? `${onRouteCount} verified` : `${totalCount} total`} chargers
+              </p>
+            </div>
+            <button
+              onClick={() => setOnRouteOnly(!onRouteOnly)}
+              className={`relative w-14 h-8 rounded-full transition-colors ${
+                onRouteOnly ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                  onRouteOnly ? 'left-7' : 'left-1'
+                }`}
+              />
+            </button>
+          </div>
+          {!onRouteOnly && (
+            <p className="text-xs text-yellow-600 mt-2">
+              Showing all chargers including off-route options
+            </p>
+          )}
+        </div>
 
         {/* Search Button */}
         <button
@@ -136,7 +179,7 @@ export default function Home() {
         {/* Stats */}
         {!loading && chargers.length > 0 && (
           <div className="text-center text-sm text-gray-500 py-4">
-            {chargers.length} chargers loaded • 150-400kW
+            {onRouteOnly ? onRouteCount : totalCount} chargers • 150-400kW
           </div>
         )}
       </main>

@@ -22,6 +22,7 @@ interface AirtableRecord {
     charger_status?: string;
     connector_types?: string;
     num_chargers?: number;
+    on_route?: string;
   };
 }
 
@@ -73,6 +74,7 @@ export async function fetchAllChargers(): Promise<ChargerRecord[]> {
           status: fields.charger_status,
           connector_types: fields.connector_types || '',
           num_chargers: fields.num_chargers || 1,
+          on_route: (fields.on_route as 'yes' | 'no' | 'nearby') || 'no',
         });
       }
     }
